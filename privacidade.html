@@ -20,7 +20,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     // Utilitário para renderizar Ícones SVG limpos sem dependências externas
     const Icon = ({ path, size = 24, className = "" }) => (
@@ -36,12 +36,24 @@
       Instagram: '<rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>',
       Linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/>',
       Menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
-      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+      X: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      Bot: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
+      SendHorizontal: '<path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/>',
+      Loader2: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+      MessageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
     };
 
     const App = () => {
       const [scrolled, setScrolled] = useState(false);
       const [isMenuOpen, setIsMenuOpen] = useState(false);
+      
+      const [isChatOpen, setIsChatOpen] = useState(false);
+      const [chatInput, setChatInput] = useState('');
+      const [chatMessages, setChatMessages] = useState([
+        { role: 'assistant', text: 'Olá! Sou o consultor virtual da Momesso Digital. Como posso ajudar a impulsionar o seu negócio hoje?' }
+      ]);
+      const [isTyping, setIsTyping] = useState(false);
+      const chatEndRef = useRef(null);
 
       useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -49,8 +61,62 @@
         return () => window.removeEventListener('scroll', handleScroll);
       }, []);
 
+      useEffect(() => {
+        if (chatEndRef.current && isChatOpen) {
+          chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, [chatMessages, isTyping, isChatOpen]);
+
       const MAIN_SITE_URL = "index.html";
       const CONTACT_EMAIL = "contato@momessodigital.com.br";
+
+      const handleChatSubmit = async (e) => {
+        e.preventDefault();
+        if (!chatInput.trim() || isTyping) return;
+        const userMessage = chatInput;
+        setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+        setChatInput('');
+        setIsTyping(true);
+
+        const systemPrompt = `Você é o consultor estratégico da Momesso Digital. Seu objetivo é sanar dúvidas de potenciais clientes sobre marketing digital e performance. Diretrizes de resposta: 1. Tom: Humanizado, parceiro, honesto e focado em resultados (ROI). 2. Contexto da Momesso: Focamos em Tráfego Pago, LPs de conversão, SEO, Social Media, Captação de Vídeos e Branding. 3. Diferencial: Tratamos o negócio do cliente como se fosse nosso. 4. Convite: Se a dúvida for complexa, sugira que falem com um especialista no formulário da página. 5. Mantenha as respostas diretas e profissionais.`;
+
+        const apiKey = "AIzaSyBz_TNZN52qK1jEZYlmLgCWpcv9tpYXAcA";
+        
+        const callAI = async (retryCount = 0) => {
+          try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: userMessage }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+              })
+            });
+
+            if (!response.ok) throw new Error('Falha na comunicação com o servidor de IA.');
+            const data = await response.json();
+            const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!aiResponse) throw new Error('Resposta inválida.');
+            return aiResponse;
+          } catch (error) {
+            if (retryCount < 5) {
+              const delay = Math.pow(2, retryCount) * 1000;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return callAI(retryCount + 1);
+            }
+            throw error;
+          }
+        };
+
+        try {
+          const text = await callAI();
+          setChatMessages(prev => [...prev, { role: 'assistant', text }]);
+        } catch (err) {
+          setChatMessages(prev => [...prev, { role: 'assistant', text: "Lamento, o sistema de análise estratégica está temporariamente instável. Por favor, utilize o formulário de contato." }]);
+        } finally {
+          setIsTyping(false);
+        }
+      };
 
       return (
         <div className="min-h-screen bg-[#121212] text-[#EAEAEA] font-sans selection:bg-[#00F0FF] selection:text-[#121212] scroll-smooth">
@@ -174,6 +240,56 @@
               </div>
             </div>
           </section>
+
+          {/* Floating Chat */}
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+            {isChatOpen && (
+              <div className="mb-4 w-[350px] md:w-[400px] h-[550px] bg-[#1A1D24] border border-[#EAEAEA]/10 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div className="bg-[#121212] p-5 flex items-center justify-between border-b border-[#EAEAEA]/5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#00F0FF] rounded-full flex items-center justify-center text-[#121212]"><Icon path={icons.Bot} size={20} /></div>
+                    <div>
+                      <h4 className="font-bold text-sm text-white">Consultor Virtual</h4>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse"></span>
+                        <span className="text-[10px] uppercase font-bold text-[#EAEAEA]/40 tracking-widest">Online</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsChatOpen(false)} className="text-[#EAEAEA]/40 hover:text-white"><Icon path={icons.X} size={20} /></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-hide bg-[#121212]">
+                  {chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] p-4 text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-[#00F0FF] text-[#121212] font-medium rounded-2xl rounded-tr-sm' : 'bg-[#1A1D24] text-[#EAEAEA]/90 border border-[#EAEAEA]/5 rounded-2xl rounded-tl-sm'}`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-[#1A1D24] p-4 rounded-2xl rounded-tl-sm border border-[#EAEAEA]/5 flex gap-2 items-center">
+                        <Icon path={icons.Loader2} size={16} className="animate-spin text-[#00F0FF]" />
+                        <span className="text-[10px] uppercase font-bold text-[#EAEAEA]/40 tracking-widest">Analisando...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={handleChatSubmit} className="p-4 bg-[#1A1D24] border-t border-[#EAEAEA]/5">
+                  <div className="relative">
+                    <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} placeholder="Escreva a sua mensagem..." className="w-full bg-[#121212] border border-[#EAEAEA]/10 focus:border-[#00F0FF] rounded-xl pl-4 pr-12 py-3.5 text-sm outline-none text-white" />
+                    <button type="submit" disabled={isTyping || !chatInput.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 bg-[#00F0FF] text-[#121212] rounded-lg flex items-center justify-center disabled:opacity-30 hover:scale-105 transition-transform">
+                      <Icon path={icons.SendHorizontal} size={18} />
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+            <button onClick={() => setIsChatOpen(!isChatOpen)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${isChatOpen ? 'bg-[#1A1D24] text-[#00F0FF] border border-[#EAEAEA]/10' : 'bg-[#00F0FF] text-[#121212]'}`}>
+              <Icon path={isChatOpen ? icons.X : icons.MessageSquare} size={24} />
+            </button>
+          </div>
 
           {/* Footer Completo e Funcional (Replicado da Home) */}
           <footer className="bg-[#1A1D24] border-t border-[#EAEAEA]/5 pt-20 pb-10 mt-10">
