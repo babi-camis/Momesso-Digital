@@ -50,26 +50,26 @@ export default async function handler(req, res) {
         - Se não souber responder algo técnico, recomende o diagnóstico via FORMULÁRIO.
         - Nunca prometa milagres; prometa performance baseada em dados (Data-Driven).`;
 
-        // MODO À PROVA DE BALAS: Unimos as instruções do sistema diretamente à mensagem do utilizador
-        // Isto contorna qualquer erro de validação de esquema (systemInstruction) da API da Google.
-        const combinedMessage = `INSTRUÇÕES DE COMPORTAMENTO:\n${systemPrompt}\n\nPERGUNTA DO CLIENTE:\n${message}`;
+        // Instruções injetadas no corpo da mensagem. 
+        // Zero campos "systemInstruction" para garantir 100% de compatibilidade na Vercel e na Google.
+        const combinedMessage = `INSTRUÇÕES OBRIGATÓRIAS DE COMPORTAMENTO:\n${systemPrompt}\n\nPERGUNTA DO CLIENTE:\n${message}`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // Versão V1 estável (sem "beta")
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: combinedMessage }] }],
-                generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+                contents: [{ parts: [{ text: combinedMessage }] }]
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("A API do Gemini recusou o pedido:", errorText);
+            console.error("Erro na API da Google:", errorText);
             return res.status(200).json({ 
-                text: `⚠️ A Google recusou a ligação com o modelo. Detalhe técnico: ${errorText}`
+                text: `⚠️ A Google recusou a ligação. Detalhe técnico: ${errorText}`
             });
         }
 
