@@ -19,7 +19,8 @@ export default async function handler(req, res) {
             return res.status(200).json({ text: '⚠️ Erro: Mensagem vazia.' });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        // A função trim() remove quaisquer espaços invisíveis que tenha copiado por engano na Vercel
+        const apiKey = process.env.GEMINI_API_KEY?.trim();
 
         if (!apiKey) {
             return res.status(200).json({ 
@@ -50,8 +51,8 @@ export default async function handler(req, res) {
         - Se não souber responder algo técnico, recomende o diagnóstico via FORMULÁRIO.
         - Nunca prometa milagres; prometa performance baseada em dados (Data-Driven).`;
 
-        // Alterado para gemini-1.5-flash-latest para compatibilidade com a sua chave
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+        // Alterado para a versão v1 (estável) e modelo base do flash
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -66,13 +67,14 @@ export default async function handler(req, res) {
         if (!response.ok) {
             const errorText = await response.text();
             
-            // Fallback imediato: se o 1.5 falhar, tenta o gemini-pro (que é garantido funcionar em 100% das chaves ativas)
+            // Fallback imediato para a versão v1beta caso a v1 falhe
             if (response.status === 404) {
-                 const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                 const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ role: "user", parts: [{ text: message }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
                         generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                     })
                 });
