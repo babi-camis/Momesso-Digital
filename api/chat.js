@@ -87,5 +87,4 @@ export default async function handler(req, res) {
         return res.status(200).json({ text: "⚠️ ERRO DE REDE: O servidor Vercel falhou ao tentar estabelecer ligação com a inteligência da Google." });
     }
 
-    // forcar atualizacao da chave
 }
