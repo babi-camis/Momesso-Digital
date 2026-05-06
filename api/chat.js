@@ -19,7 +19,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ text: '⚠️ Erro: Mensagem vazia.' });
         }
 
-        // A função trim() remove quaisquer espaços invisíveis que tenha copiado por engano na Vercel
         const apiKey = process.env.GEMINI_API_KEY?.trim();
 
         if (!apiKey) {
@@ -51,40 +50,23 @@ export default async function handler(req, res) {
         - Se não souber responder algo técnico, recomende o diagnóstico via FORMULÁRIO.
         - Nunca prometa milagres; prometa performance baseada em dados (Data-Driven).`;
 
-        // Alterado para a versão v1 (estável) e modelo base do flash
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // MODO À PROVA DE BALAS: Unimos as instruções do sistema diretamente à mensagem do utilizador
+        // Isto contorna qualquer erro de validação de esquema (systemInstruction) da API da Google.
+        const combinedMessage = `INSTRUÇÕES DE COMPORTAMENTO:\n${systemPrompt}\n\nPERGUNTA DO CLIENTE:\n${message}`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                contents: [{ role: "user", parts: [{ text: message }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ role: "user", parts: [{ text: combinedMessage }] }],
                 generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            
-            // Fallback imediato para a versão v1beta caso a v1 falhe
-            if (response.status === 404) {
-                 const fallbackResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ role: "user", parts: [{ text: message }] }],
-                        systemInstruction: { parts: [{ text: systemPrompt }] },
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-                    })
-                });
-                
-                if (fallbackResponse.ok) {
-                    const fallbackData = await fallbackResponse.json();
-                    return res.status(200).json({ text: fallbackData.candidates?.[0]?.content?.parts?.[0]?.text });
-                }
-            }
-
             console.error("A API do Gemini recusou o pedido:", errorText);
             return res.status(200).json({ 
                 text: `⚠️ A Google recusou a ligação com o modelo. Detalhe técnico: ${errorText}`
