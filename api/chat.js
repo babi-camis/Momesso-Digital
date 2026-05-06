@@ -50,12 +50,10 @@ export default async function handler(req, res) {
         - Se não souber responder algo técnico, recomende o diagnóstico via FORMULÁRIO.
         - Nunca prometa milagres; prometa performance baseada em dados (Data-Driven).`;
 
-        // Instruções injetadas no corpo da mensagem. 
-        // Zero campos "systemInstruction" para garantir 100% de compatibilidade na Vercel e na Google.
         const combinedMessage = `INSTRUÇÕES OBRIGATÓRIAS DE COMPORTAMENTO:\n${systemPrompt}\n\nPERGUNTA DO CLIENTE:\n${message}`;
 
-        // Versão V1 estável (sem "beta")
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        // Link cravado na versão v1beta e modelo gemini-pro (suportado por todas as chaves)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
