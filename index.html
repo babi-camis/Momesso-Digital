@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Momesso Digital - Estratégia e Performance</title>
   
-  <!-- Estilos e Dependências -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -13,7 +12,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body { font-family: 'Inter', sans-serif; background-color: #121212; color: #EAEAEA; }
+    body { font-family: 'Inter', sans-serif; background-color: #121212; color: #EAEAEA; margin: 0; padding: 0; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -28,7 +27,19 @@
     const { useState, useEffect, useRef } = React;
 
     const Icon = ({ path, size = 24, className = "" }) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{ __html: path }} />
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width={size} 
+        height={size} 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={className} 
+        dangerouslySetInnerHTML={{ __html: path }} 
+      />
     );
 
     const icons = {
@@ -136,12 +147,22 @@
             body: JSON.stringify({ message: userMessage })
           });
 
-          if (!response.ok) throw new Error('Erro na comunicação');
+          const rawText = await response.text();
+          let data;
           
-          const data = await response.json();
+          try {
+             data = JSON.parse(rawText);
+          } catch (e) {
+             throw new Error(`A Vercel devolveu código HTML em vez de dados (Rota 404). Tem certeza que está a testar no link da Vercel e não no ficheiro local? Resposta crua: ${rawText.substring(0, 50)}...`);
+          }
+
+          if (!response.ok) {
+              throw new Error(data.text || `Falha HTTP ${response.status}`);
+          }
+          
           setChatMessages(prev => [...prev, { role: 'assistant', text: data.text }]);
         } catch (err) {
-          setChatMessages(prev => [...prev, { role: 'assistant', text: "Lamento, o sistema está temporariamente instável. Por favor, utilize o formulário abaixo." }]);
+          setChatMessages(prev => [...prev, { role: 'assistant', text: `⚠️ ERRO REAL DO SISTEMA: ${err.message}` }]);
         } finally {
           setIsTyping(false);
         }
@@ -149,7 +170,6 @@
 
       return (
         <div className="min-h-screen bg-[#121212] text-[#EAEAEA] font-sans selection:bg-[#00F0FF] selection:text-[#121212] scroll-smooth">
-          
           <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-[#121212]/95 backdrop-blur-md border-b border-[#EAEAEA]/5 py-3 shadow-lg' : 'bg-transparent py-5'}`}>
             <div className="container mx-auto px-6 flex justify-between items-center">
               <div className="flex items-center gap-2 group cursor-pointer">
@@ -160,7 +180,7 @@
               </div>
 
               <div className="hidden lg:flex items-center gap-10">
-                <a href="sobre.html" className="text-xs font-bold uppercase tracking-widest text-[#EAEAEA]/70 hover:text-white transition-colors outline-none">Sobre Nós</a>
+                <a href="#sobre" className="text-xs font-bold uppercase tracking-widest text-[#EAEAEA]/70 hover:text-white transition-colors outline-none">Sobre Nós</a>
                 <a href="#proposito" className="text-xs font-bold uppercase tracking-widest text-[#EAEAEA]/70 hover:text-white transition-colors">Propósito</a>
                 <a href="#servicos" className="text-xs font-bold uppercase tracking-widest text-[#EAEAEA]/70 hover:text-white transition-colors">Serviços</a>
                 <a href="#depoimentos" className="text-xs font-bold uppercase tracking-widest text-[#EAEAEA]/70 hover:text-white transition-colors">Clientes</a>
@@ -176,7 +196,7 @@
 
             {isMenuOpen && (
               <div className="lg:hidden absolute top-full left-0 w-full bg-[#121212] border-b border-[#212121] p-8 flex flex-col gap-6 shadow-xl">
-                <a href="sobre.html" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-white">Sobre Nós</a>
+                <a href="#sobre" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-white">Sobre Nós</a>
                 <a href="#proposito" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-[#EAEAEA]">Propósito</a>
                 <a href="#servicos" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-[#EAEAEA]">Serviços</a>
                 <a href="#depoimentos" onClick={() => setIsMenuOpen(false)} className="text-lg font-bold text-[#EAEAEA]">Clientes</a>
@@ -295,14 +315,12 @@
                                <option value="Branding">Branding</option>
                             </select>
                          </div>
-                         <button type="submit" className="w-full bg-[#00F0FF] text-[#121212] py-5 rounded-2xl font-black text-xl uppercase hover:bg-white transition-all shadow-xl flex items-center justify-center gap-3">
-                           Enviar Dados para Análise <Icon path={icons.Send} size={20} />
-                         </button>
+                         <button className="w-full bg-[#00F0FF] text-[#121212] py-5 rounded-2xl font-black text-xl uppercase hover:bg-white transition-all shadow-xl">Enviar Dados para Análise</button>
                       </form>
                    ) : (
                       <div className="text-center py-10">
                          <Icon path={icons.CheckCircle} size={64} className="text-[#00F0FF] mx-auto mb-6" />
-                         <h3 className="text-3xl font-black text-white uppercase tracking-widest">DADOS RECEBIDOS!</h3>
+                         <h3 className="text-3xl font-black text-white">Dados Recebidos!</h3>
                       </div>
                    )}
                 </div>
@@ -361,17 +379,17 @@
                 <div>
                   <h4 className="text-white font-black uppercase tracking-widest text-xs mb-6">Navegação</h4>
                   <ul className="space-y-3 text-sm font-medium text-[#EAEAEA]/60">
-                    <li><a href="index.html" className="hover:text-[#00F0FF] transition-colors">Página Inicial</a></li>
-                    <li><a href="sobre.html" className="hover:text-[#00F0FF] transition-colors">Sobre Nós</a></li>
-                    <li><a href="index.html#servicos" className="hover:text-[#00F0FF] transition-colors">Serviços e Soluções</a></li>
-                    <li><a href="index.html#depoimentos" className="hover:text-[#00F0FF] transition-colors">Casos de Sucesso</a></li>
+                    <li><a href="#home" className="hover:text-[#00F0FF] transition-colors">Página Inicial</a></li>
+                    <li><a href="#sobre" className="hover:text-[#00F0FF] transition-colors">Sobre Nós</a></li>
+                    <li><a href="#servicos" className="hover:text-[#00F0FF] transition-colors">Serviços e Soluções</a></li>
+                    <li><a href="#depoimentos" className="hover:text-[#00F0FF] transition-colors">Casos de Sucesso</a></li>
                   </ul>
                 </div>
 
                 <div>
                   <h4 className="text-white font-black uppercase tracking-widest text-xs mb-6">Legal & Contactos</h4>
                   <ul className="space-y-3 text-sm font-medium text-[#EAEAEA]/60">
-                    <li><a href="privacidade.html" className="text-white transition-colors cursor-default">Políticas de Privacidade</a></li>
+                    <li><a href="#privacidade" className="text-white transition-colors cursor-default">Políticas de Privacidade</a></li>
                     <li className="pt-4 flex items-center gap-3">
                       <Icon path={icons.Mail} size={16} className="text-[#00F0FF]" /> 
                       <a href="mailto:contato@momessodigital.com.br" className="hover:text-white transition-colors">contato@momessodigital.com.br</a>
@@ -382,10 +400,10 @@
                 <div>
                   <h4 className="text-white font-black uppercase tracking-widest text-xs mb-6">Redes Sociais</h4>
                   <div className="flex gap-4">
-                     <a href="#" aria-label="Instagram" className="w-10 h-10 rounded-full bg-[#121212] flex items-center justify-center text-[#EAEAEA]/60 hover:bg-[#00F0FF] hover:text-[#121212] hover:scale-110 transition-all border border-[#EAEAEA]/5 shadow-lg">
+                     <a href="#instagram" aria-label="Instagram" className="w-10 h-10 rounded-full bg-[#121212] flex items-center justify-center text-[#EAEAEA]/60 hover:bg-[#00F0FF] hover:text-[#121212] hover:scale-110 transition-all border border-[#EAEAEA]/5 shadow-lg">
                        <Icon path={icons.Instagram} size={18} />
                      </a>
-                     <a href="#" aria-label="LinkedIn" className="w-10 h-10 rounded-full bg-[#121212] flex items-center justify-center text-[#EAEAEA]/60 hover:bg-[#00F0FF] hover:text-[#121212] hover:scale-110 transition-all border border-[#EAEAEA]/5 shadow-lg">
+                     <a href="#linkedin" aria-label="LinkedIn" className="w-10 h-10 rounded-full bg-[#121212] flex items-center justify-center text-[#EAEAEA]/60 hover:bg-[#00F0FF] hover:text-[#121212] hover:scale-110 transition-all border border-[#EAEAEA]/5 shadow-lg">
                        <Icon path={icons.Linkedin} size={18} />
                      </a>
                   </div>
@@ -404,7 +422,7 @@
           </footer>
         </div>
       );
-    };
+    }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
