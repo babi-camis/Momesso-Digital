@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1778255284216,
+      "tag": "0000_foamy_eddie_brock",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1778256112514,
+      "tag": "0001_vengeful_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778257025287,
+      "tag": "0002_past_hammerhead",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778257623787,
+      "tag": "0003_mysterious_ultimatum",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778260531725,
+      "tag": "0004_lyrical_wind_dancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778261110625,
+      "tag": "0005_zippy_marvex",
+      "breakpoints": true
+    }
+  ]
+}
